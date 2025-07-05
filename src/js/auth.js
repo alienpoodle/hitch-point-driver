@@ -32,9 +32,9 @@ export function showToast(message, type = "success") {
 
 // Check if the user is a driver
 export async function isDriver(uid) {
-    const driverRef = doc(db, "drivers", uid);
-    const driverSnap = await getDoc(driverRef);
-    return driverSnap.exists() && driverSnap.data().role === "driver";
+    const userRef = doc(db, "users", uid);
+    const userSnap = await getDoc(userRef);
+    return userSnap.exists() && userSnap.data().role === "driver";
 }
 
 export function setupAuthListeners() {

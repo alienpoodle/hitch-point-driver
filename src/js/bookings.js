@@ -49,7 +49,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (driverSnap.exists()) {
             currentDriver = driverSnap.data();
             driverNameSpan.textContent = currentDriver.name || "Driver";
-            // Initialize settings form with current driver data
             if (settingsForm) {
                 document.getElementById('vehicleModel').value = currentDriver.vehicleModel || '';
                 document.getElementById('licensePlate').value = currentDriver.licensePlate || '';
@@ -67,12 +66,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function listenPendingRequests(driverId) {
-        // Listen for ride requests assigned to this driver and status 'pending'
+        // Listen for ride requests assigned to this driver and status 'booked'
         const q = query(
-            collection(db, "bookings"),
+            collection(db, "rides"),
             where("driverId", "==", driverId),
-            where("status", "==", "pending"),
-            orderBy("pickupTime", "asc")
+            where("status", "==", "booked"),
+            orderBy("rideDateTime", "asc")
         );
         onSnapshot(q, (snapshot) => {
             pendingRequests = [];
@@ -88,10 +87,10 @@ document.addEventListener('DOMContentLoaded', () => {
     function listenRideHistory(driverId) {
         // Listen for completed/cancelled rides for this driver
         const q = query(
-            collection(db, "bookings"),
+            collection(db, "rides"),
             where("driverId", "==", driverId),
             where("status", "in", ["completed", "cancelled"]),
-            orderBy("pickupTime", "desc")
+            orderBy("rideDateTime", "desc")
         );
         onSnapshot(q, (snapshot) => {
             rideHistory = [];
@@ -107,7 +106,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function listenActiveRide(driverId) {
         // Listen for accepted/in_progress ride for this driver
         const q = query(
-            collection(db, "bookings"),
+            collection(db, "rides"),
             where("driverId", "==", driverId),
             where("status", "in", ["accepted", "in_progress"])
         );
@@ -128,13 +127,11 @@ document.addEventListener('DOMContentLoaded', () => {
         if (activeRide) {
             currentRideDisplay.innerHTML = `
                 <div class="card-body">
-                    <h3 class="card-title">Active Ride: ${activeRide.userName}</h3>
+                    <h3 class="card-title">Active Ride: ${activeRide.userName || activeRide.userId}</h3>
                     <p class="card-text"><strong>Origin:</strong> ${activeRide.origin}</p>
-                    ${activeRide.pickupPoints && activeRide.pickupPoints.length > 0 ?
-                        `<p class="card-text"><strong>Pickup Points:</strong> ${activeRide.pickupPoints.join(', ')}</p>` : ''}
-                    <p class="card-text"><strong>Final Destination:</strong> ${activeRide.finalDestination}</p>
-                    <p class="card-text"><strong>Pickup Time:</strong> ${new Date(activeRide.pickupTime).toLocaleString()}</p>
-                    <p class="card-text"><strong>Fare:</strong> $${activeRide.fare.toFixed(2)}</p>
+                    <p class="card-text"><strong>Final Destination:</strong> ${activeRide.destination}</p>
+                    <p class="card-text"><strong>Pickup Time:</strong> ${activeRide.rideDateTime ? new Date(activeRide.rideDateTime).toLocaleString() : ''}</p>
+                    <p class="card-text"><strong>Fare:</strong> $${activeRide.fareUSD || '0.00'}</p>
                     <p class="card-text"><strong>Status:</strong> <span class="badge ${activeRide.status === 'accepted' ? 'bg-primary' : 'bg-warning'}">${activeRide.status.toUpperCase().replace('_', ' ')}</span></p>
                     <div class="mt-3">
                         ${activeRide.status === 'accepted' ? `<button class="btn btn-success me-2" data-id="${activeRide.id}">Start Ride</button>` : ''}
@@ -164,12 +161,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const row = pendingRequestsTableBody.insertRow();
             row.innerHTML = `
                 <td data-label="Request ID">${request.id}</td>
-                <td data-label="User">${request.userName}</td>
-                <td data-label="Pickup Time">${new Date(request.pickupTime).toLocaleString()}</td>
+                <td data-label="User">${request.userName || request.userId}</td>
+                <td data-label="Pickup Time">${request.rideDateTime ? new Date(request.rideDateTime).toLocaleString() : ''}</td>
                 <td data-label="Origin">${request.origin}</td>
-                <td data-label="Pickup Points">${request.pickupPoints && request.pickupPoints.length > 0 ? request.pickupPoints.join('<br>') : 'N/A'}</td>
-                <td data-label="Final Destination">${request.finalDestination}</td>
-                <td data-label="Fare">$${request.fare.toFixed(2)}</td>
+                <td data-label="Final Destination">${request.destination}</td>
+                <td data-label="Fare">$${request.fareUSD || '0.00'}</td>
                 <td data-label="Actions">
                     <button class="btn btn-sm btn-success me-1" data-id="${request.id}">Accept</button>
                     <button class="btn btn-sm btn-danger" data-id="${request.id}">Reject</button>
@@ -198,12 +194,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const row = rideHistoryTableBody.insertRow();
             row.innerHTML = `
                 <td data-label="Ride ID">${ride.id}</td>
-                <td data-label="User">${ride.userName}</td>
+                <td data-label="User">${ride.userName || ride.userId}</td>
                 <td data-label="Origin">${ride.origin}</td>
-                <td data-label="Pickup Points">${ride.pickupPoints && ride.pickupPoints.length > 0 ? ride.pickupPoints.join('<br>') : 'N/A'}</td>
-                <td data-label="Final Destination">${ride.finalDestination}</td>
-                <td data-label="Time">${ride.time ? ride.time : (ride.pickupTime ? new Date(ride.pickupTime).toLocaleString() : '')}</td>
-                <td data-label="Fare">$${ride.fare.toFixed(2)}</td>
+                <td data-label="Final Destination">${ride.destination}</td>
+                <td data-label="Time">${ride.rideDateTime ? new Date(ride.rideDateTime).toLocaleString() : ''}</td>
+                <td data-label="Fare">$${ride.fareUSD || '0.00'}</td>
                 <td data-label="Status"><span class="badge ${statusClass}">${ride.status.charAt(0).toUpperCase() + ride.status.slice(1)}</span></td>
             `;
         });
@@ -220,56 +215,54 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function handleAcceptRide(id) {
         if (activeRide) {
-            alert('You already have an active ride. Please complete it first.');
+            showToast('You already have an active ride. Please complete it first.', 'danger');
             return;
         }
-        const bookingRef = doc(db, "bookings", id);
-        await updateDoc(bookingRef, {
+        const rideRef = doc(db, "rides", id);
+        await updateDoc(rideRef, {
             status: "accepted"
         });
-        // UI will update via onSnapshot
-        // Optionally, switch to Current Rides tab
         const currentRidesTab = document.querySelector('button[data-bs-target="#current-rides"]');
         if (currentRidesTab) {
             const bsTab = new bootstrap.Tab(currentRidesTab);
             bsTab.show();
         }
+        showToast('Ride accepted!', 'success');
     }
 
     async function handleRejectRide(id) {
-        const bookingRef = doc(db, "bookings", id);
-        await updateDoc(bookingRef, {
+        const rideRef = doc(db, "rides", id);
+        await updateDoc(rideRef, {
             status: "cancelled"
         });
-        // UI will update via onSnapshot
+        showToast('Ride rejected.', 'success');
     }
 
     async function handleStartRide(event) {
         const rideId = event.target.dataset.id;
         if (activeRide && activeRide.id === rideId) {
-            const bookingRef = doc(db, "bookings", rideId);
-            await updateDoc(bookingRef, {
+            const rideRef = doc(db, "rides", rideId);
+            await updateDoc(rideRef, {
                 status: "in_progress"
             });
-            // UI will update via onSnapshot
+            showToast('Ride started!', 'success');
         }
     }
 
     async function handleCompleteRide(event) {
         const rideId = event.target.dataset.id;
         if (activeRide && activeRide.id === rideId) {
-            const bookingRef = doc(db, "bookings", rideId);
-            await updateDoc(bookingRef, {
+            const rideRef = doc(db, "rides", rideId);
+            await updateDoc(rideRef, {
                 status: "completed",
                 time: new Date().toISOString()
             });
-            // UI will update via onSnapshot
-            // Optionally, switch to Ride History tab
             const rideHistoryTab = document.querySelector('button[data-bs-target="#ride-history"]');
             if (rideHistoryTab) {
                 const bsTab = new bootstrap.Tab(rideHistoryTab);
                 bsTab.show();
             }
+            showToast('Ride completed!', 'success');
         }
     }
 
@@ -283,7 +276,7 @@ document.addEventListener('DOMContentLoaded', () => {
         await setDoc(doc(db, "drivers", driverId), {
             ...currentDriver
         }, { merge: true });
-        alert('Account settings saved!');
+        showToast('Account settings saved!', 'success');
         driverNameSpan.textContent = currentDriver.name || "Driver";
     });
 });

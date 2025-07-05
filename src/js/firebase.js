@@ -7,7 +7,12 @@ import {
     signInWithPopup,
     signOut
 } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+import {
+    getFirestore,
+    doc,
+    getDoc,
+    setDoc
+} from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
 export let app, auth, db;
 export let currentUserId = null;
@@ -23,7 +28,6 @@ export async function initFirebase(onUserChanged) {
         db = getFirestore(app);
     }
 
-    // Ensure every new user gets a Firestore doc with role: "passenger" and uid
     onAuthStateChanged(auth, async (user) => {
         if (user) {
             currentUserId = user.uid;
@@ -31,10 +35,20 @@ export async function initFirebase(onUserChanged) {
             const userRef = doc(db, "users", user.uid);
             const userSnap = await getDoc(userRef);
             if (!userSnap.exists()) {
+                // Try to extract first and last name from displayName
+                let firstName = "";
+                let lastName = "";
+                if (user.displayName) {
+                    const parts = user.displayName.split(" ");
+                    firstName = parts[0] || "";
+                    lastName = parts.slice(1).join(" ") || "";
+                }
                 await setDoc(userRef, {
                     uid: user.uid,
                     email: user.email,
-                    role: "passenger"
+                    role: "passenger",
+                    firstName,
+                    lastName
                 });
             }
         } else {
