@@ -1,0 +1,30 @@
+{
+    "name": "HitchPoint - Driver Dashboard",
+    "short_name": "HitchPoint Driver",
+    "description": "Transport Service in St. Vincent and the Grenadines",
+    "start_url": "/index.html",
+    "display": "standalone",
+    "background_color": "#f7fafc",
+    "theme_color": "#5E9BCD",
+    "orientation": "portrait",
+    "scope": "/",
+    "icons": [
+        {
+            "src": "/src/images/android-chrome-192x192.png",
+            "sizes": "192x192",
+            "type": "image/png"
+        },
+        {
+            "src": "/src/images/android-chrome-512x512.png",
+            "sizes": "512x512",
+            "type": "image/png"
+        },
+        {
+            "src": "/src/images/logo.png",
+            "sizes": "128x128",
+            "type": "image/png",
+            "purpose": "any maskable"
+        }
+    ],
+    "lang": "en"
+}
