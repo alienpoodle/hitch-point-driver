@@ -1,15 +1,7 @@
 import { auth, db } from './firebase.js';
+import { isDriver, showToast } from './auth.js';
 import {
-    doc,
-    getDoc,
-    setDoc,
-    updateDoc,
-    collection,
-    query,
-    where,
-    getDocs,
-    onSnapshot,
-    orderBy
+    doc, getDoc, setDoc, updateDoc, collection, query, where, onSnapshot, orderBy
 } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -33,7 +25,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     auth.onAuthStateChanged(async (user) => {
         if (!user) {
-            window.location.href = '/login.html';
+            window.location.href = '/index.html';
+            return;
+        }
+        // Enforce driver role
+        const driverOk = await isDriver(user.uid);
+        if (!driverOk) {
+            showToast("Access denied: You are not registered as a driver.", "danger");
+            await auth.signOut();
+            window.location.href = '/index.html';
             return;
         }
         driverId = user.uid;
