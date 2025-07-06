@@ -1,4 +1,4 @@
-import { showToast, showLoadingOverlay, hideLoadingOverlay, openModal, closeModal, hideCancelPinButtons } from './ui.js';
+import { showToast, showLoadingOverlay, hideLoadingOverlay, openModal, closeModal } from './ui.js';
 
 
 let map, geocoder, selectedMarker;
@@ -124,6 +124,18 @@ export function setupMapListeners() {
             }
         });
     }
+}
+
+export function openMapModal(mode) {
+    if (!isGoogleMapsReady) {
+        showToast("Google Maps is not ready. Please try again.", "error");
+        return;
+    }
+    mapSelectionMode = mode;
+    openModal('map-modal');
+    setTimeout(() => {
+        initMapForSelection();
+    }, 300);
 }
 
 
