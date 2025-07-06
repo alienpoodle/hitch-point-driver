@@ -2,7 +2,7 @@ import { initFirebase } from './firebase.js';
 import { setupAuthListeners, isDriver, showToast } from './auth.js';
 import { setupMapListeners, loadGoogleMapsApi } from './maps.js';
 import { setupPWA } from './pwa.js';
-import { initDriverFeature } from './bookings.js';
+//import { initDriverFeature } from './bookings.js';
 
 document.addEventListener('DOMContentLoaded', async () => {
     const loginSection = document.getElementById('driver-login-section');
@@ -34,7 +34,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (loginSection) loginSection.style.display = 'none';
 
         // Continue with dashboard setup
-        initDriverFeature();
+       //initDriverFeature();
         setupMapListeners(window.firebaseConfig.googleMapsApiKey);
         setupPWA();
         loadGoogleMapsApi(window.firebaseConfig.googleMapsApiKey)
