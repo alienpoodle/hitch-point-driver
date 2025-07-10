@@ -14,7 +14,12 @@ export function showToast(message, type = "success") {
         document.body.appendChild(toastContainer);
     }
     const toast = document.createElement('div');
-    toast.className = `toast align-items-center text-bg-${type === "success" ? "success" : "danger"} border-0 show mb-2`;
+    // Adjust type to ensure Bootstrap classes are correct (success, danger, info, warning)
+    let bsTypeClass = "success"; // Default
+    if (type === "danger" || type === "info" || type === "warning") {
+        bsTypeClass = type;
+    }
+    toast.className = `toast align-items-center text-bg-${bsTypeClass} border-0 show mb-2`;
     toast.setAttribute('role', 'alert');
     toast.setAttribute('aria-live', 'assertive');
     toast.setAttribute('aria-atomic', 'true');
@@ -30,37 +35,34 @@ export function showToast(message, type = "success") {
     toast.addEventListener('hidden.bs.toast', () => toast.remove());
 }
 
-// Check if the user is a driver
+/**
+ * Checks if a user has the 'driver' role in the Firestore 'users' collection.
+ * @param {string} uid - The Firebase User ID.
+ * @returns {Promise<boolean>} - True if the user is a driver, false otherwise.
+ */
 export async function isDriver(uid) {
+    if (!uid) {
+        console.warn("isDriver called with null UID.");
+        return false;
+    }
     const userRef = doc(db, "users", uid);
-    const userSnap = await getDoc(userRef);
-    return userSnap.exists() && userSnap.data().role === "driver";
+    try {
+        const userSnap = await getDoc(userRef);
+        return userSnap.exists() && userSnap.data().role === "driver";
+    } catch (error) {
+        console.error("Error checking driver role for UID:", uid, error);
+        // It's safer to return false on error to prevent unauthorized access
+        return false;
+    }
 }
 
+/**
+ * Sets up event listeners for authentication-related buttons (login, logout).
+ */
 export function setupAuthListeners() {
     const googleLoginBtn = document.getElementById('google-login-btn');
     const errorDiv = document.getElementById('login-error');
-    if (googleLoginBtn) googleLoginBtn.addEventListener('click', async () => {
-        if (errorDiv) errorDiv.classList.add('d-none');
-        try {
-            await googleLogin();
-            showToast("Successfully logged in!", "success");
-        } catch (error) {
-            showToast("Could not sign in with Google. Please try again.", "danger");
-            if (errorDiv) {
-                errorDiv.textContent = "Login failed. Please try again.";
-                errorDiv.classList.remove('d-none');
-            }
-        }
-    });
 
-    const navbarLogout = document.getElementById('navbar-logout');
-    if (navbarLogout) navbarLogout.addEventListener('click', async () => {
-        try {
-            await googleLogout();
-            showToast("Successfully logged out!", "success");
-        } catch (error) {
-            showToast("Could not log out. Please try again.", "danger");
-        }
-    });
-}
+    if (googleLoginBtn) {
+        googleLoginBtn.addEventListener('click', async () => {
+            if (errorDiv) errorDiv.classList.add('d-none'); //
