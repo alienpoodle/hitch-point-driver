@@ -1,4 +1,5 @@
-import { googleLogin, googleLogout, db } from './firebase.js';
+// IMPORTANT: Updated imports to include signInWithEmailAndPassword and use userLogout
+import { googleLogin, userLogout, signInWithEmailAndPassword, db } from './firebase.js';
 import { doc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
 // Bootstrap 5 toast helper
@@ -14,8 +15,7 @@ export function showToast(message, type = "success") {
         document.body.appendChild(toastContainer);
     }
     const toast = document.createElement('div');
-    // Adjust type to ensure Bootstrap classes are correct (success, danger, info, warning)
-    let bsTypeClass = "success"; // Default
+    let bsTypeClass = "success";
     if (type === "danger" || type === "info" || type === "warning") {
         bsTypeClass = type;
     }
@@ -30,73 +30,115 @@ export function showToast(message, type = "success") {
         </div>
     `;
     toastContainer.appendChild(toast);
+    // Ensure `bootstrap` object is available from Bootstrap's JS bundle
     const bsToast = new bootstrap.Toast(toast, { delay: 3000 });
     bsToast.show();
     toast.addEventListener('hidden.bs.toast', () => toast.remove());
 }
 
 /**
- * Checks if a user has the 'driver' role in the Firestore 'users' collection.
+ * Checks if a user has a document in the 'drivers' collection, indicating a driver role.
+ * IMPORTANT: This aligns with your updated Firebase Security Rules.
  * @param {string} uid - The Firebase User ID.
- * @returns {Promise<boolean>} - True if the user is a driver, false otherwise.
+ * @returns {Promise<boolean>} - True if the user is a driver (has a document in 'drivers' collection), false otherwise.
  */
 export async function isDriver(uid) {
     if (!uid) {
         console.warn("isDriver called with null UID.");
         return false;
     }
-    const userRef = doc(db, "users", uid);
+    const driverRef = doc(db, "drivers", uid);
     try {
-        const userSnap = await getDoc(userRef);
-        return userSnap.exists() && userSnap.data().role === "driver";
+        const driverSnap = await getDoc(driverRef);
+        return driverSnap.exists(); // User is a driver if a document exists in the 'drivers' collection
     } catch (error) {
         console.error("Error checking driver role for UID:", uid, error);
-        // It's safer to return false on error to prevent unauthorized access
         return false;
     }
 }
 
 /**
- * Sets up event listeners for authentication-related buttons (login, logout).
+ * Sets up event listeners for authentication-related buttons and forms.
  */
 export function setupAuthListeners() {
     const googleLoginBtn = document.getElementById('google-login-btn');
-    const errorDiv = document.getElementById('login-error');
+    const driverLoginForm = document.getElementById('driver-login-form'); // IMPORTANT: Reference the new login form
+    const loginErrorDiv = document.getElementById('login-error');
 
+    // --- Google Login Button Listener ---
     if (googleLoginBtn) {
         googleLoginBtn.addEventListener('click', async () => {
-            if (errorDiv) errorDiv.classList.add('d-none'); // Hide previous errors
+            if (loginErrorDiv) loginErrorDiv.classList.add('d-none');
             try {
-                // googleLogin is imported from firebase.js and handles the popup
                 await googleLogin();
-                showToast("Successfully logged in!", "success");
-                // The onAuthStateChanged listener in main.js will handle UI updates
+                showToast("Successfully logged in with Google!", "success");
             } catch (error) {
                 console.error("Google login error:", error);
                 showToast("Could not sign in with Google. Please try again.", "danger");
-                if (errorDiv) {
+                if (loginErrorDiv) {
                     let errorMessage = "Login failed. Please try again.";
                     if (error.code === 'auth/popup-closed-by-user') {
                         errorMessage = "Login cancelled: Popup closed.";
                     } else if (error.code === 'auth/cancelled-popup-request') {
                         errorMessage = "Login cancelled: Already processing a login request.";
                     }
-                    errorDiv.textContent = errorMessage;
-                    errorDiv.classList.remove('d-none');
+                    loginErrorDiv.textContent = errorMessage;
+                    loginErrorDiv.classList.remove('d-none');
                 }
             }
-        }); // <-- This closing brace was missing for the async function
+        });
     }
 
-    // IMPORTANT: Adjusted ID to match your index.html's <button id="logoutBtn">
+    // --- Email/Password Login Form Listener (NEW) ---
+    if (driverLoginForm) {
+        driverLoginForm.addEventListener('submit', async (e) => {
+            e.preventDefault(); // Prevent default form submission
+
+            const emailInput = driverLoginForm.querySelector('#login-email');
+            const passwordInput = driverLoginForm.querySelector('#login-password');
+
+            const email = emailInput ? emailInput.value : '';
+            const password = passwordInput ? passwordInput.value : '';
+
+            if (!email || !password) {
+                showToast("Please enter both email and password.", "warning");
+                if (loginErrorDiv) {
+                    loginErrorDiv.textContent = "Please enter both email and password.";
+                    loginErrorDiv.classList.remove('d-none');
+                }
+                return;
+            }
+
+            if (loginErrorDiv) loginErrorDiv.classList.add('d-none');
+
+            try {
+                // IMPORTANT: Call the imported signInWithEmailAndPassword function
+                await signInWithEmailAndPassword(email, password);
+                showToast("Successfully logged in!", "success");
+            } catch (error) {
+                console.error("Email/Password Login Error:", error);
+                showToast("Login failed. Check your credentials.", "danger");
+                if (loginErrorDiv) {
+                    let errorMessage = "Login failed: Invalid email or password.";
+                    if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
+                        errorMessage = "Invalid email or password.";
+                    } else if (error.code === 'auth/invalid-email') {
+                        errorMessage = "Invalid email format.";
+                    }
+                    loginErrorDiv.textContent = errorMessage;
+                    loginErrorDiv.classList.remove('d-none');
+                }
+            }
+        });
+    }
+
+    // --- Logout Button Listener ---
     const logoutButton = document.getElementById('logoutBtn');
     if (logoutButton) {
         logoutButton.addEventListener('click', async () => {
             try {
-                // googleLogout is imported from firebase.js and handles the sign out
-                await googleLogout();
+                await userLogout(); // IMPORTANT: Call userLogout (renamed from googleLogout)
                 showToast("Successfully logged out!", "success");
-                // The onAuthStateChanged listener in main.js will handle UI updates
             } catch (error) {
                 console.error("Logout error:", error);
                 showToast("Could not log out. Please try again.", "danger");
