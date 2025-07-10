@@ -1,15 +1,16 @@
-const CACHE_NAME = 'hitch-point-driver-cache-v1.0.2';
+const CACHE_NAME = 'hitch-point-driver-cache-v1.0.3';
 const ASSETS_TO_CACHE = [
   '/',
   'index.html',
-  'src/css/styles.css',
-  'src/js/main.js',
-  'src/js/firebase.js',
-  'src/js/auth.js',
-  'src/js/maps.js',
-  'src/js/pwa.js',
-  'src/js/constants.js',
-  'src/images/logo.png',
+  '/src/css/styles.css',
+  '/src/js/main.js',
+  '/src/js/firebase.js',
+  '/src/js/auth.js',
+  '/src/js/driverDashboard',
+  '/src/js/maps.js',
+  '/src/js/pwa.js',
+  '/src/js/constants.js',
+  '/src/images/logo.png',
 
 ];
 
