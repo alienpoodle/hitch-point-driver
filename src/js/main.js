@@ -1,32 +1,30 @@
-// src/js/main.js
-
-import { initFirebase } from './firebase.js';
+import { initFirebase } from './firebase.js'; // This should include onAuthStateChanged listener
 import { setupAuthListeners, isDriver, showToast } from './auth.js';
-import { loadGoogleMapsApi } from './maps.js'; // Assuming 'map.js' exports loadGoogleMapsApi
+import { loadGoogleMapsApi } from './maps.js';
 import { setupPWA } from './pwa.js';
-
-// Import the new driver dashboard initializer
 import { initDriverDashboard } from './driverDashboard.js';
 
 document.addEventListener('DOMContentLoaded', async () => {
     // Select the login section and the main dashboard container
     const loginSection = document.getElementById('driver-login-section');
-    // Using a more general selector for the main dashboard wrapper.
-    // Confirm '.container-fluid.p-0' matches your main dashboard div in HTML.
-    const dashboard = document.querySelector('.container-fluid.p-0');
+    const dashboardContainer = document.getElementById('dashboard-container'); // Use the new ID
 
-    // Initial state: hide dashboard, show login
-    if (dashboard) dashboard.style.display = 'none';
-    if (loginSection) loginSection.style.display = '';
+    // Ensure elements exist before trying to manipulate them
+    if (!loginSection || !dashboardContainer) {
+        console.error("Critical DOM elements (login/dashboard containers) not found!");
+        showToast("Application initialization failed: Missing UI elements.", "danger");
+        return; // Stop execution if critical elements are missing
+    }
 
     // Initialize Firebase and set up the authentication state observer
     // The callback function runs whenever the user's authentication state changes.
-    initFirebase(async (user) => {
+    // It should receive 'auth' from firebase.js, not window.firebaseAuth
+    initFirebase(async (user) => { // Assuming initFirebase now passes the user object from onAuthStateChanged
         if (!user) {
             // User is signed out or not logged in
             console.log('User signed out. Displaying login section.');
-            if (dashboard) dashboard.style.display = 'none';
-            if (loginSection) loginSection.style.display = '';
+            dashboardContainer.classList.add('d-none'); // Hide dashboard
+            loginSection.classList.remove('d-none');   // Show login
             // Clear driver name or any user-specific display on logout
             const driverNameSpan = document.getElementById('driverName');
             if (driverNameSpan) driverNameSpan.textContent = 'Guest';
@@ -43,19 +41,24 @@ document.addEventListener('DOMContentLoaded', async () => {
             showToast("Access denied: You are not registered as a driver.", "danger");
 
             // Log out the unauthorized user to prevent access to driver-specific areas
-            if (window.firebaseAuth && window.firebaseAuth.signOut) {
-                await window.firebaseAuth.signOut();
+            // Ensure you have auth imported and accessible here for signOut
+            import { auth } from '../config.js'; // Assuming auth is exported from config.js
+            if (auth && auth.signOut) {
+                 await auth.signOut(); // Use the imported auth object
+            } else {
+                 console.error("Firebase auth object not found for signOut.");
             }
+
             // Ensure login section is visible after denied access
-            if (dashboard) dashboard.style.display = 'none';
-            if (loginSection) loginSection.style.display = '';
+            dashboardContainer.classList.add('d-none');
+            loginSection.classList.remove('d-none');
             return;
         }
 
         // User is a valid driver: Show the dashboard and hide the login section
         console.log('Driver authenticated and authorized for UID:', user.uid);
-        if (dashboard) dashboard.style.display = '';
-        if (loginSection) loginSection.style.display = 'none';
+        dashboardContainer.classList.remove('d-none'); // Show dashboard
+        loginSection.classList.add('d-none');         // Hide login
 
         // Display driver's name in the header/dashboard (can be further updated by driverDashboard.js)
         const driverNameSpan = document.getElementById('driverName');
@@ -65,7 +68,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         // Load Google Maps API (it accesses window.firebaseConfig.googleMapsApiKey internally)
         try {
-            await loadGoogleMapsApi(); // Call without arguments as per maps.js design
+            await loadGoogleMapsApi();
             console.log('Google Maps API loaded successfully for driver dashboard.');
         } catch (error) {
             console.error('Error loading Google Maps API:', error);
@@ -76,11 +79,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         setupPWA();
 
         // Initialize all driver dashboard specific functionalities
-        // Pass the user ID so driverDashboard.js can fetch driver-specific data
         initDriverDashboard(user.uid);
     });
 
     // Setup general authentication listeners (e.g., Google Sign-In button, Logout button)
-    // These are set up once, independent of the user's auth state, to handle initial interactions.
     setupAuthListeners();
 });
