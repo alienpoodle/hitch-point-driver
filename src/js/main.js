@@ -1,4 +1,6 @@
-import { initFirebase } from './firebase.js'; // This should include onAuthStateChanged listener
+// src/js/main.js
+
+import { initFirebase, auth } from './firebase.js'; // IMPORTANT: Added 'auth' here
 import { setupAuthListeners, isDriver, showToast } from './auth.js';
 import { loadGoogleMapsApi } from './maps.js';
 import { setupPWA } from './pwa.js';
@@ -7,19 +9,17 @@ import { initDriverDashboard } from './driverDashboard.js';
 document.addEventListener('DOMContentLoaded', async () => {
     // Select the login section and the main dashboard container
     const loginSection = document.getElementById('driver-login-section');
-    const dashboardContainer = document.getElementById('dashboard-container'); // Use the new ID
+    const dashboardContainer = document.getElementById('dashboard-container'); // IMPORTANT: Using the new ID
 
     // Ensure elements exist before trying to manipulate them
     if (!loginSection || !dashboardContainer) {
         console.error("Critical DOM elements (login/dashboard containers) not found!");
         showToast("Application initialization failed: Missing UI elements.", "danger");
-        return; // Stop execution if critical elements are missing
+        return;
     }
 
     // Initialize Firebase and set up the authentication state observer
-    // The callback function runs whenever the user's authentication state changes.
-    // It should receive 'auth' from firebase.js, not window.firebaseAuth
-    initFirebase(async (user) => { // Assuming initFirebase now passes the user object from onAuthStateChanged
+    initFirebase(async (user) => {
         if (!user) {
             // User is signed out or not logged in
             console.log('User signed out. Displaying login section.');
@@ -41,10 +41,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             showToast("Access denied: You are not registered as a driver.", "danger");
 
             // Log out the unauthorized user to prevent access to driver-specific areas
-            // Ensure you have auth imported and accessible here for signOut
-            import { auth } from '../config.js'; // Assuming auth is exported from config.js
+            // 'auth' is now imported at the top level, resolving the SyntaxError
             if (auth && auth.signOut) {
-                 await auth.signOut(); // Use the imported auth object
+                 await auth.signOut();
             } else {
                  console.error("Firebase auth object not found for signOut.");
             }
@@ -82,6 +81,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         initDriverDashboard(user.uid);
     });
 
-    // Setup general authentication listeners (e.g., Google Sign-In button, Logout button)
+    // Setup general authentication listeners (e.g., Google Sign-In button, Logout button, Email/Password Login Form)
     setupAuthListeners();
 });
