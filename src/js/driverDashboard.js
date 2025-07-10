@@ -249,21 +249,21 @@ function renderCurrentRide() {
  * @param {Array<Object>} requests - An array of pending ride request objects.
  */
 function renderPendingRequests(requests) {
-    if (!pendingRequestsTableBody || !noPendingRequestsMessage) return; // Ensure elements exist
+    if (!pendingRequestsTableBody || !noPendingRequestsMessage) return;
 
-    pendingRequestsTableBody.innerHTML = ''; // Clear previous entries
+    pendingRequestsTableBody.innerHTML = '';
     if (requests.length === 0) {
-        noPendingRequestsMessage.classList.remove('d-none'); // Show "No pending requests" message
+        noPendingRequestsMessage.classList.remove('d-none');
         return;
     }
-    noPendingRequestsMessage.classList.add('d-none'); // Hide the message
+    noPendingRequestsMessage.classList.add('d-none');
 
     const rowsHtml = requests.map(request => {
         const passengerIdentifier = request.userName || request.userId;
         const pickupTime = request.rideDateTime ? new Date(request.rideDateTime).toLocaleString() : 'N/A';
         const fareDisplay = request.fareUSD ? `$${parseFloat(request.fareUSD).toFixed(2)}` : '$0.00';
         const pickupPointsDisplay = request.pickupPoints && request.pickupPoints.length > 0
-            ? request.pickupPoints.join(', ') : 'N/A'; // Display pickup points
+            ? request.pickupPoints.join(', ') : 'N/A';
 
         return `
             <tr>
@@ -284,7 +284,7 @@ function renderPendingRequests(requests) {
                 </td>
             </tr>
         `;
-    }).join(''); // Join all row HTML strings together
+    }).join('');
 
     pendingRequestsTableBody.innerHTML = rowsHtml;
 
