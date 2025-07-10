@@ -63,7 +63,7 @@ export async function initDriverDashboard(userUid) {
     if (settingsForm) {
         settingsForm.addEventListener('submit', handleSettingsSubmit);
     }
-}
+} // <-- This is the closing brace for initDriverDashboard, which should be at the very end of the file.
 
 // --- Firebase Data Management Functions ---
 
@@ -433,77 +433,4 @@ async function handleCompleteRide(event) {
     const rideId = event.target.dataset.id;
     // Ensure the clicked ride is the active one and in the 'in_progress' state
     if (activeRide && activeRide.id === rideId && activeRide.status === 'in_progress') {
-        const rideRef = doc(db, "rides", rideId);
-        try {
-            await updateDoc(rideRef, {
-                status: "completed",
-                completedAt: new Date().toISOString() // Timestamp when ride completes
-            });
-            showToast('Ride completed! Added to history.', 'success');
-
-            // Programmatically switch to the 'Ride History' tab
-            const rideHistoryTabBtn = document.querySelector('button[data-bs-target="#ride-history"]');
-            if (rideHistoryTabBtn && typeof bootstrap !== 'undefined' && bootstrap.Tab) {
-                const bsTab = new bootstrap.Tab(rideHistoryTabBtn);
-                bsTab.show();
-            } else {
-                console.warn("Bootstrap Tab functionality not found or tab button missing. Cannot switch tabs automatically.");
-            }
-        } catch (error) {
-            console.error("Error completing ride:", error);
-            showToast('Failed to complete ride. Please try again.', 'danger');
-        }
-    } else {
-        showToast('Cannot complete ride. It might not be in the "in progress" state or not the current active ride.', 'warning');
-    }
-}
-
-/**
- * Placeholder for updating ride status (e.g., "Arrived at pickup").
- * This would typically involve a modal or more complex UI.
- * @param {Event} event - The click event from the "Update Status" button.
- */
-async function handleUpdateRideStatus(event) {
-    const rideId = event.target.dataset.id;
-    showToast('Update Status functionality coming soon!', 'info');
-    console.log("Update Status clicked for ride:", rideId);
-    // You could implement a modal here to let the driver select a new status
-    // For example: await updateDoc(doc(db, "rides", rideId), { status: "arrived_at_pickup" });
-}
-
-/**
- * Placeholder for viewing ride details on a map.
- * @param {Event} event - The click event from the "View Map" button.
- */
-async function handleViewRideMap(event) {
-    const rideId = event.target.dataset.id;
-    showToast('Loading map for ride ' + rideId + '...', 'info');
-    console.log("View Map clicked for ride:", rideId);
-    // This would involve rendering a Google Map dynamically with the ride's origin,
-    // destination, and possibly pickup points highlighted.
-    // Example: Pass activeRide data to a map utility function.
-}
-
-/**
- * Placeholder for viewing full ride details from history.
- * @param {string} id - The ID of the ride document.
- */
-async function handleViewRideDetails(id) {
-    showToast('Loading ride details for ' + id + '...', 'info');
-    console.log("View Details clicked for ride:", id);
-    // You could fetch the specific ride document and display its full details in a modal.
-}
-
-
-// --- Settings Form Handler ---
-
-/**
- * Handles the submission of the driver's settings form.
- * Updates vehicle model and license plate in the driver's profile.
- * @param {Event} e - The form submission event.
- */
-async function handleSettingsSubmit(e) {
-    e.preventDefault(); // Prevent default form submission behavior
-
-    if (!currentDriverProfile || !driverUid) {
-        showToast('Driver profile not loaded. Please try again.', 'danger');
+        const rideRef = doc
