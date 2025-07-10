@@ -25,6 +25,7 @@
             </div>
             <button type="submit" class="btn btn-primary w-100 mb-2">Login with Email</button>
         </form>
+
         <button id="google-login-btn" class="btn btn-outline-secondary w-100 mb-2">Sign in with Google</button>
         <div id="login-error" class="alert alert-danger d-none mt-2"></div>
     </div>
@@ -60,10 +61,77 @@
 
     <main class="container-fluid flex-grow-1 py-4">
         <div class="tab-content" id="dashboardTabContent">
-            <div class="tab-pane fade show active" id="current-rides" role="tabpanel" aria-labelledby="current-rides-tab">...</div>
-            <div class="tab-pane fade" id="pending-requests" role="tabpanel" aria-labelledby="pending-requests-tab">...</div>
-            <div class="tab-pane fade" id="ride-history" role="tabpanel" aria-labelledby="ride-history-tab">...</div>
-            <div class="tab-pane fade" id="account-settings" role="tabpanel" aria-labelledby="account-settings-tab">...</div>
+            <div class="tab-pane fade show active" id="current-rides" role="tabpanel" aria-labelledby="current-rides-tab">
+                <h2 class="mb-4 text-primary">Your Current Ride</h2>
+                <div id="currentRideDisplay" class="card shadow-sm mb-4">
+                    <div class="card-body">
+                        <p class="card-text text-muted">No active ride.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tab-pane fade" id="pending-requests" role="tabpanel" aria-labelledby="pending-requests-tab">
+                <h2 class="mb-4 text-primary">Pending Ride Requests</h2>
+                <div class="table-responsive">
+                    <table class="table table-hover table-striped shadow-sm" id="pendingRequestsTable">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Request ID</th>
+                                <th>User</th>
+                                <th>Pickup Time</th>
+                                <th>Origin</th>
+                                <th>Pickup Points</th>
+                                <th>Final Destination</th>
+                                <th>Fare</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            </tbody>
+                    </table>
+                </div>
+                <p id="noPendingRequests" class="text-muted text-center my-4 d-none">No pending ride requests.</p>
+            </div>
+
+            <div class="tab-pane fade" id="ride-history" role="tabpanel" aria-labelledby="ride-history-tab">
+                <h2 class="mb-4 text-primary">Ride History</h2>
+                <div class="table-responsive">
+                    <table class="table table-hover table-striped shadow-sm" id="rideHistoryTable">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Ride ID</th>
+                                <th>User</th>
+                                <th>Origin</th>
+                                <th>Pickup Points</th>
+                                <th>Final Destination</th>
+                                <th>Time</th>
+                                <th>Fare</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            </tbody>
+                    </table>
+                </div>
+                <p id="noRideHistory" class="text-muted text-center my-4 d-none">No ride history available.</p>
+            </div>
+
+            <div class="tab-pane fade" id="account-settings" role="tabpanel" aria-labelledby="account-settings-tab">
+                <h2 class="mb-4 text-primary">Account Settings</h2>
+                <div class="card shadow-sm p-4">
+                    <form id="settingsForm">
+                        <div class="mb-3">
+                            <label for="vehicleModel" class="form-label">Vehicle Model:</label>
+                            <input type="text" class="form-control" id="vehicleModel" name="vehicleModel">
+                        </div>
+                        <div class="mb-3">
+                            <label for="licensePlate" class="form-label">License Plate:</label>
+                            <input type="text" class="form-control" id="licensePlate" name="licensePlate">
+                        </div>
+                        <button type="submit" class="btn btn-primary">Save Settings</button>
+                    </form>
+                </div>
+            </div>
         </div>
     </main>
 </div>
