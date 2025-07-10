@@ -65,4 +65,42 @@ export function setupAuthListeners() {
 
     if (googleLoginBtn) {
         googleLoginBtn.addEventListener('click', async () => {
-            if (errorDiv) errorDiv.classList.add('d-none'); //
+            if (errorDiv) errorDiv.classList.add('d-none'); // Hide previous errors
+            try {
+                // googleLogin is imported from firebase.js and handles the popup
+                await googleLogin();
+                showToast("Successfully logged in!", "success");
+                // The onAuthStateChanged listener in main.js will handle UI updates
+            } catch (error) {
+                console.error("Google login error:", error);
+                showToast("Could not sign in with Google. Please try again.", "danger");
+                if (errorDiv) {
+                    let errorMessage = "Login failed. Please try again.";
+                    if (error.code === 'auth/popup-closed-by-user') {
+                        errorMessage = "Login cancelled: Popup closed.";
+                    } else if (error.code === 'auth/cancelled-popup-request') {
+                        errorMessage = "Login cancelled: Already processing a login request.";
+                    }
+                    errorDiv.textContent = errorMessage;
+                    errorDiv.classList.remove('d-none');
+                }
+            }
+        }); // <-- This closing brace was missing for the async function
+    }
+
+    // IMPORTANT: Adjusted ID to match your index.html's <button id="logoutBtn">
+    const logoutButton = document.getElementById('logoutBtn');
+    if (logoutButton) {
+        logoutButton.addEventListener('click', async () => {
+            try {
+                // googleLogout is imported from firebase.js and handles the sign out
+                await googleLogout();
+                showToast("Successfully logged out!", "success");
+                // The onAuthStateChanged listener in main.js will handle UI updates
+            } catch (error) {
+                console.error("Logout error:", error);
+                showToast("Could not log out. Please try again.", "danger");
+            }
+        });
+    }
+}
