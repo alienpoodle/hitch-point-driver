@@ -2,7 +2,7 @@
 
 import { initFirebase } from './firebase.js';
 import { setupAuthListeners, isDriver, showToast } from './auth.js';
-import { loadGoogleMapsApi } from './map.js'; // Assuming 'map.js' exports loadGoogleMapsApi
+import { loadGoogleMapsApi } from './maps.js'; // Assuming 'map.js' exports loadGoogleMapsApi
 import { setupPWA } from './pwa.js';
 
 // Import the new driver dashboard initializer
