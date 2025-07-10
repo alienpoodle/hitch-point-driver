@@ -1,5 +1,3 @@
-// src/js/firebase.js
-
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
 import {
     getAuth,
@@ -8,7 +6,7 @@ import {
     GoogleAuthProvider,
     signInWithPopup,
     signOut,
-    signInWithEmailAndPassword // <--- ADD THIS IMPORT
+    signInWithEmailAndPassword // IMPORTANT: Added this import
 } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 import {
     getFirestore,
@@ -17,12 +15,12 @@ import {
     setDoc
 } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-// Export these variables so they can be imported by other modules (e.g., main.js, driverDashboard.js)
 export let app, auth, db;
-export let currentUserId = null; // These can be useful global trackers
-export let currentUserEmail = null; // but make sure they are updated consistently.
+export let currentUserId = null;
+export let currentUserEmail = null;
 
-const firebaseConfig = window.firebaseConfig || {}; // Assumes firebaseConfig is set in config.js or globally
+// Ensure window.firebaseConfig is correctly defined in your config.js or globally
+const firebaseConfig = window.firebaseConfig || {};
 const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
 
 /**
@@ -33,23 +31,20 @@ const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial
  * Receives the Firebase User object (if logged in) or null (if logged out).
  */
 export async function initFirebase(onUserChanged) {
-    // Only initialize Firebase app, auth, and db once
     if (!app) {
         app = initializeApp(firebaseConfig);
         auth = getAuth(app);
         db = getFirestore(app);
     }
 
-    // Set up the authentication state listener
     onAuthStateChanged(auth, async (user) => {
         if (user) {
             currentUserId = user.uid;
             currentUserEmail = user.email || "N/A";
-
-            // Check if user profile exists in Firestore. If not, create a basic one.
             const userRef = doc(db, "users", user.uid);
             const userSnap = await getDoc(userRef);
             if (!userSnap.exists()) {
+                // Try to extract first and last name from displayName
                 let firstName = "";
                 let lastName = "";
                 if (user.displayName) {
@@ -67,7 +62,6 @@ export async function initFirebase(onUserChanged) {
                 console.log("New user profile created in Firestore for UID:", user.uid);
             }
         } else {
-            // User is logged out
             currentUserId = null;
             currentUserEmail = null;
         }
@@ -75,7 +69,6 @@ export async function initFirebase(onUserChanged) {
         if (onUserChanged) onUserChanged(user);
     });
 
-    // Handle custom token login if an initial token is provided
     if (initialAuthToken) {
         try {
             await signInWithCustomToken(auth, initialAuthToken);
@@ -86,14 +79,13 @@ export async function initFirebase(onUserChanged) {
     }
 }
 
-// Export specific authentication functions for direct use in other modules
 export async function googleLogin() {
     const provider = new GoogleAuthProvider();
-    return signInWithPopup(auth, provider); // Return the promise for handling in main.js
+    return signInWithPopup(auth, provider); // IMPORTANT: Return the promise
 }
 
-export async function userLogout() { // Renamed from googleLogout for clarity, as it signs out any user
-    return signOut(auth); // Return the promise
+export async function userLogout() { // IMPORTANT: Renamed from googleLogout
+    return signOut(auth); // IMPORTANT: Return the promise
 }
 
-export { signInWithEmailAndPassword }; // <--- EXPORT THIS FOR USE IN MAIN.JS
+export { signInWithEmailAndPassword }; // IMPORTANT: Export signInWithEmailAndPassword
