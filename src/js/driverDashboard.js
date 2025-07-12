@@ -1,5 +1,5 @@
 import { auth, db } from './firebase.js'; // Import Firebase auth and db instances
-import { showToast } from './ui.js'; 
+import { showToast } from './ui.js'; // Only showToast is needed here, isDriver is used in main.js
 import { doc, getDoc, setDoc, updateDoc, collection, query, where, onSnapshot, orderBy, limit } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
 // --- DOM Elements (will be accessed once initDriverDashboard is called) ---
@@ -283,18 +283,18 @@ function renderCurrentRide() {
                 ${activeRide.roundTrip ? `<p class="card-text text-info"><strong>Round Trip</strong></p>` : ''}
 
                 <div class="mt-3">
-                    ${activeRide.status === 'accepted' ? `<button class="btn btn-success me-2" data-id="${activeRide.id}">Start Ride</button>` : ''}
-                    ${activeRide.status === 'in_progress' ? `<button class="btn btn-primary" data-id="${activeRide.id}">Complete Ride</button>` : ''}
-                    ${activeRide.status === 'in_progress' ? `<button class="btn btn-warning ms-2" data-id="${activeRide.id}">Update Status</button>` : ''}
-                    <button class="btn btn-info ms-2" data-id="${activeRide.id}">View Map</button>
+                    ${activeRide.status === 'accepted' ? `<button class="btn btn-success me-2" data-id="${activeRide.id}" title="Start Ride">Start Ride</button>` : ''}
+                    ${activeRide.status === 'in_progress' ? `<button class="btn btn-primary" data-id="${activeRide.id}" title="Complete Ride">Complete Ride</button>` : ''}
+                    ${activeRide.status === 'in_progress' ? `<button class="btn btn-warning ms-2" data-id="${activeRide.id}" title="Update Status">Update Status</button>` : ''}
+                    <button class="btn btn-info ms-2" data-id="${activeRide.id}" title="View Map">View Map</button>
                 </div>
             </div>
         `;
         // Attach event listeners to dynamically created buttons
-        currentRideDisplay.querySelector('.btn-success')?.addEventListener('click', handleStartRide);
-        currentRideDisplay.querySelector('.btn-primary')?.addEventListener('click', handleCompleteRide);
-        currentRideDisplay.querySelector('.btn-warning')?.addEventListener('click', handleUpdateRideStatus);
-        currentRideDisplay.querySelector('.btn-info')?.addEventListener('click', handleViewRideMap);
+        currentRideDisplay.querySelector('.btn-success')?.addEventListener('click', (e) => handleStartRide(e.currentTarget.dataset.id));
+        currentRideDisplay.querySelector('.btn-primary')?.addEventListener('click', (e) => handleCompleteRide(e.currentTarget.dataset.id));
+        currentRideDisplay.querySelector('.btn-warning')?.addEventListener('click', (e) => handleUpdateRideStatus(e.currentTarget.dataset.id));
+        currentRideDisplay.querySelector('.btn-info')?.addEventListener('click', (e) => handleViewRideMap(e.currentTarget.dataset.id));
 
     } else if (currentRideDisplay) {
         currentRideDisplay.innerHTML = `<div class="card-body"><p class="card-text text-muted">No active ride.</p></div>`;
@@ -336,8 +336,8 @@ function renderPendingRequests(requests) {
                 <td data-label="Passengers">${request.persons || 1}</td>
                 <td data-label="Bags">${request.bags || 0}</td>
                 <td data-label="Actions">
-                    <button class="btn btn-sm btn-success me-1" data-id="${request.id}">Accept</button>
-                    <button class="btn btn-sm btn-danger" data-id="${request.id}">Reject</button>
+                    <button class="btn btn-sm btn-success me-1 btn-icon" data-id="${request.id}" title="Accept Ride"><i class="fas fa-check"></i></button>
+                    <button class="btn btn-sm btn-danger btn-icon" data-id="${request.id}" title="Reject Ride"><i class="fas fa-times"></i></button>
                 </td>
             </tr>
         `;
@@ -347,10 +347,10 @@ function renderPendingRequests(requests) {
 
     // Attach event listeners to the new buttons
     document.querySelectorAll('#pendingRequestsTable .btn-success').forEach(button => {
-        button.onclick = (e) => handleAcceptRide(e.target.dataset.id);
+        button.onclick = (e) => handleAcceptRide(e.currentTarget.dataset.id);
     });
     document.querySelectorAll('#pendingRequestsTable .btn-danger').forEach(button => {
-        button.onclick = (e) => handleRejectRide(e.target.dataset.id);
+        button.onclick = (e) => handleRejectRide(e.currentTarget.dataset.id);
     });
 }
 
@@ -388,7 +388,7 @@ function renderRideHistory(history) {
                 <td data-label="Status"><span class="badge ${statusClass}">${ride.status.charAt(0).toUpperCase() + ride.status.slice(1).replace('_', ' ')}</span></td>
                 <td data-label="Distance">${ride.distance || 'N/A'}</td>
                 <td data-label="Duration">${ride.duration || 'N/A'}</td>
-                <td><button class="btn btn-sm btn-info" data-id="${ride.id}">View Details</button></td>
+                <td><button class="btn btn-sm btn-info btn-icon" data-id="${ride.id}" title="View Details"><i class="fas fa-info-circle"></i></button></td>
             </tr>
         `;
     }).join('');
@@ -396,7 +396,7 @@ function renderRideHistory(history) {
     rideHistoryTableBody.innerHTML = rowsHtml;
 
     document.querySelectorAll('#rideHistoryTable .btn-info').forEach(button => {
-        button.onclick = (e) => handleViewRideDetails(e.target.dataset.id);
+        button.onclick = (e) => handleViewRideDetails(e.currentTarget.dataset.id);
     });
 }
 
@@ -466,10 +466,9 @@ async function handleRejectRide(id) {
 /**
  * Handles starting an accepted ride.
  * Updates ride status to 'in_progress'.
- * @param {Event} event - The click event from the "Start Ride" button.
+ * @param {string} rideId - The ID of the ride document.
  */
-async function handleStartRide(event) {
-    const rideId = event.target.dataset.id;
+async function handleStartRide(rideId) {
     // Ensure the clicked ride is the active one and in the 'accepted' state
     if (activeRide && activeRide.id === rideId && activeRide.status === 'accepted') {
         const rideRef = doc(db, "rides", rideId);
@@ -491,10 +490,9 @@ async function handleStartRide(event) {
 /**
  * Handles completing an in-progress ride.
  * Updates ride status to 'completed' and switches to ride history tab.
- * @param {Event} event - The click event from the "Complete Ride" button.
+ * @param {string} rideId - The ID of the ride document.
  */
-async function handleCompleteRide(event) {
-    const rideId = event.target.dataset.id;
+async function handleCompleteRide(rideId) {
     // Ensure the clicked ride is the active one and in the 'in_progress' state
     if (activeRide && activeRide.id === rideId && activeRide.status === 'in_progress') {
         const rideRef = doc(db, "rides", rideId);
@@ -525,10 +523,9 @@ async function handleCompleteRide(event) {
 /**
  * Placeholder for updating ride status (e.g., "Arrived at pickup").
  * This would typically involve a modal or more complex UI.
- * @param {Event} event - The click event from the "Update Status" button.
+ * @param {string} rideId - The ID of the ride document.
  */
-async function handleUpdateRideStatus(event) {
-    const rideId = event.target.dataset.id;
+async function handleUpdateRideStatus(rideId) {
     showToast('Update Status functionality coming soon!', 'info');
     console.log("Update Status clicked for ride:", rideId);
     // You could implement a modal here to let the driver select a new status
@@ -537,10 +534,9 @@ async function handleUpdateRideStatus(event) {
 
 /**
  * Placeholder for viewing ride details on a map.
- * @param {Event} event - The click event from the "View Map" button.
+ * @param {string} rideId - The ID of the ride document.
  */
-async function handleViewRideMap(event) {
-    const rideId = event.target.dataset.id;
+async function handleViewRideMap(rideId) {
     showToast('Loading map for ride ' + rideId + '...', 'info');
     console.log("View Map clicked for ride:", rideId);
     // This would involve rendering a Google Map dynamically with the ride's origin,
