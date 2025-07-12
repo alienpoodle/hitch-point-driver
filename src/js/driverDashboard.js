@@ -1,5 +1,5 @@
 import { auth, db } from './firebase.js'; // Import Firebase auth and db instances
-import { showToast } from './ui.js'; // Only showToast is needed here, isDriver is used in main.js
+import { showToast } from './ui.js'; 
 import { doc, getDoc, setDoc, updateDoc, collection, query, where, onSnapshot, orderBy, limit } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
 // --- DOM Elements (will be accessed once initDriverDashboard is called) ---
@@ -18,6 +18,11 @@ let settingsForm;
 let currentDriverProfile = null; // Stores the current driver's profile data
 let activeRide = null; // Stores the currently active ride object
 let driverUid = null; // Stores the authenticated driver's UID
+
+// New caches for ride history to combine results from multiple queries
+let assignedRidesCache = [];
+let rejectedRidesCache = [];
+
 
 /**
  * Initializes the driver dashboard functionalities:
@@ -108,13 +113,13 @@ async function loadDriverProfile(driverId) {
 
 /**
  * Sets up a real-time listener for ride requests available for any driver to accept.
- * This assumes 'status: "quoted"' and 'driverId: null' for unassigned requests.
+ * This assumes 'status: "pending"' and 'driverId: null' for unassigned requests.
  */
 function listenPendingRequests() {
-    // Query for rides that are 'quoted' (requested by passenger) and not yet assigned to a driver
+    // Query for rides that are 'pending' (requested by passenger) and not yet assigned to a driver
     const q = query(
         collection(db, "rides"),
-        where("status", "==", "quoted"),
+        where("status", "==", "pending"), // Corrected: Use "pending" as per rider app's creation status
         where("driverId", "==", null), // Crucial: filtering for unassigned rides
         orderBy("rideDateTime", "asc"), // Order by pickup time
         limit(20) // Limit the number of pending requests displayed for performance
@@ -136,31 +141,83 @@ function listenPendingRequests() {
 }
 
 /**
- * Sets up a real-time listener for the current driver's ride history (completed or cancelled rides).
+ * Sets up real-time listeners for the current driver's ride history (completed, cancelled, or rejected by them).
+ * This now uses two queries to correctly capture both assigned and rejected rides.
  */
 function listenRideHistory() {
-    // Query for rides that belong to the current driver and are in a 'completed' or 'cancelled' state
-    const q = query(
+    // 1. Query for rides where the current driver was assigned and completed/cancelled
+    const assignedHistoryQuery = query(
         collection(db, "rides"),
         where("driverId", "==", driverUid),
-        where("status", "in", ["completed", "cancelled", "rejected_by_driver"]), // Include driver rejections
-        orderBy("rideDateTime", "desc"), // Order by most recent rides first
+        where("status", "in", ["completed", "cancelled"]), // Only statuses where driverId is set
+        orderBy("rideDateTime", "desc"), // Order by most recent assigned rides first
         limit(50) // Limit the number of history items
     );
-    onSnapshot(q, (snapshot) => {
-        let rideHistory = []; // Temporary array for current ride history
+
+    // 2. Query for rides where the current driver explicitly rejected a pending ride
+    const rejectedHistoryQuery = query(
+        collection(db, "rides"),
+        where("rejectedBy", "==", driverUid), // Query by the 'rejectedBy' field (the driver's UID)
+        where("status", "==", "rejected_by_driver"), // Specific status for rejections
+        orderBy("rejectedAt", "desc"), // Order by rejection time (assuming 'rejectedAt' is set)
+        limit(50)
+    );
+
+    // Listener for assigned history
+    onSnapshot(assignedHistoryQuery, (snapshot) => {
+        assignedRidesCache = []; // Clear old cache before populating
         snapshot.forEach(doc => {
             let data = doc.data();
             data.id = doc.id;
-            rideHistory.push(data);
+            assignedRidesCache.push(data);
         });
-        console.log('Ride history updated:', rideHistory.length);
-        renderRideHistory(rideHistory); // Render them to the UI
+        console.log('Assigned ride history updated:', assignedRidesCache.length);
+        renderCombinedRideHistory(); // Call the helper to combine and render
     }, (error) => {
-        console.error("Error listening to ride history:", error);
-        showToast("Error loading ride history.", "danger");
+        console.error("Error listening to assigned ride history:", error);
+        showToast("Error loading assigned ride history.", "danger");
+    });
+
+    // Listener for rejected history
+    onSnapshot(rejectedHistoryQuery, (snapshot) => {
+        rejectedRidesCache = []; // Clear old cache before populating
+        snapshot.forEach(doc => {
+            let data = doc.data();
+            data.id = doc.id;
+            rejectedRidesCache.push(data);
+        });
+        console.log('Rejected ride history updated:', rejectedRidesCache.length);
+        renderCombinedRideHistory(); // Call the helper to combine and render
+    }, (error) => {
+        console.error("Error listening to rejected ride history:", error);
+        showToast("Error loading rejected ride history.", "danger");
     });
 }
+
+/**
+ * Helper function to combine results from assignedRidesCache and rejectedRidesCache,
+ * then sort and render them. This is called whenever either history cache updates.
+ */
+function renderCombinedRideHistory() {
+    // Combine arrays
+    const combinedHistory = [...assignedRidesCache, ...rejectedRidesCache];
+
+    // Deduplicate any possible overlaps (unlikely with current distinct queries but good practice)
+    const uniqueHistory = combinedHistory.filter((value, index, self) =>
+        self.findIndex(item => item.id === value.id) === index
+    );
+
+    // Sort by a relevant date (e.g., rideDateTime, completedAt, or rejectedAt)
+    // Most recent rides first
+    uniqueHistory.sort((a, b) => {
+        const dateA = new Date(a.rideDateTime || a.completedAt || a.rejectedAt);
+        const dateB = new Date(b.rideDateTime || b.completedAt || b.rejectedAt);
+        return dateB - dateA;
+    });
+
+    renderRideHistory(uniqueHistory); // Call your existing rendering function with the combined, sorted data
+}
+
 
 /**
  * Sets up a real-time listener for the current driver's active ride (accepted or in progress).
@@ -312,9 +369,9 @@ function renderRideHistory(history) {
     noRideHistoryMessage.classList.add('d-none'); // Hide the message
 
     const rowsHtml = history.map(ride => {
-        const statusClass = ride.status === 'completed' ? 'bg-success' : 'bg-danger';
+        const statusClass = ride.status === 'completed' ? 'bg-success' : 'bg-danger'; // Simple class for display
         const passengerIdentifier = ride.userName || ride.userId;
-        const rideTime = ride.rideDateTime ? new Date(ride.rideDateTime).toLocaleString() : 'N/A';
+        const rideTime = ride.rideDateTime ? new Date(ride.rideDateTime).toLocaleString() : (ride.rejectedAt ? new Date(ride.rejectedAt).toLocaleString() : 'N/A');
         const fareDisplay = ride.fareUSD ? `$${parseFloat(ride.fareUSD).toFixed(2)}` : '$0.00';
         const pickupPointsDisplay = ride.pickupPoints && ride.pickupPoints.length > 0
             ? ride.pickupPoints.join(', ') : 'N/A'; // Display pickup points
@@ -349,7 +406,7 @@ function renderRideHistory(history) {
  * Handles accepting a pending ride request.
  * Updates ride status, assigns driver details, and switches to the active ride tab.
  * @param {string} id - The ID of the ride document.
- */
+*/
 async function handleAcceptRide(id) {
     if (activeRide) {
         showToast('You already have an active ride. Please complete it first.', 'danger');
