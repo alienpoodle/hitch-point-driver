@@ -1,4 +1,4 @@
-import { auth, db } from '../firebase.js'; // Import Firebase auth and db instances
+import { auth, db } from './firebase.js'; // Import Firebase auth and db instances
 import { showToast, showLoadingOverlay, hideLoadingOverlay } from './ui.js';
 import { doc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 import { GoogleAuthProvider, signInWithPopup, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
