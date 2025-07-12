@@ -1,7 +1,6 @@
-// src/js/main.js
-
-import { initFirebase, auth } from './firebase.js'; // IMPORTANT: Added 'auth' here
+import { initFirebase, auth } from './firebase.js'; 
 import { setupAuthListeners, isDriver, showToast } from './auth.js';
+import { showToast } from './ui.js';
 import { loadGoogleMapsApi } from './maps.js';
 import { setupPWA } from './pwa.js';
 import { initDriverDashboard } from './driverDashboard.js';
