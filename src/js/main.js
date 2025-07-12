@@ -1,5 +1,5 @@
 import { initFirebase, auth } from './firebase.js'; 
-import { setupAuthListeners, isDriver, showToast } from './auth.js';
+import { setupAuthListeners, isDriver } from './auth.js';
 import { showToast } from './ui.js';
 import { loadGoogleMapsApi } from './maps.js';
 import { setupPWA } from './pwa.js';
