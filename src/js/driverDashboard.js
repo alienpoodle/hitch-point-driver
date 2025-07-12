@@ -1,5 +1,5 @@
 import { auth, db } from './firebase.js'; // Import Firebase auth and db instances
-import { showToast } from './auth.js'; // Only showToast is needed here, isDriver is used in main.js
+import { showToast } from './ui.js'; // Only showToast is needed here, isDriver is used in main.js
 import { doc, getDoc, setDoc, updateDoc, collection, query, where, onSnapshot, orderBy, limit } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
 // --- DOM Elements (will be accessed once initDriverDashboard is called) ---
