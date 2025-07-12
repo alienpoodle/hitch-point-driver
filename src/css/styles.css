@@ -1,64 +1,107 @@
-       /* Custom CSS for minor overrides/additions and mobile table responsiveness */
-        :root {
-            --primary-color-custom: #007bff; /* Custom variable if you want to override Bootstrap's --bs-primary */
-            --dark-bg-custom: #343a40; /* Custom variable for darker elements */
-        }
+:root {
+    /* Custom variables if you want to override Bootstrap's --bs-primary etc. */
+    --primary-color-custom: #007bff;
+    --dark-bg-custom: #343a40;
+}
 
-        /* Optional: Custom styling for the navigation tabs if you want them to be different from default Bootstrap */
-        .nav-tabs .nav-link.active {
-            background-color: var(--bs-light); /* Active tab background */
-            color: var(--bs-primary) !important; /* Active tab text color */
-            border-color: var(--bs-primary) var(--bs-primary) var(--bs-light) !important; /* Active tab border */
-            border-bottom: 2px solid var(--bs-light) !important; /* This creates the "active" underline */
-        }
+.nav-tabs .nav-link.active {
+    background-color: var(--bs-light); /* Active tab background */
+    color: var(--bs-primary) !important; /* Active tab text color */
+    /* Adjust border to create a distinct active look */
+    border-color: var(--bs-primary) var(--bs-primary) var(--bs-light) !important;
+    border-bottom: 2px solid var(--bs-light) !important; /* This creates the "active" underline effect */
+}
 
-        .nav-tabs .nav-link {
-            border: none; /* Remove default tab borders */
-            border-radius: 0.25rem 0.25rem 0 0; /* Only top corners rounded */
-            margin-bottom: 0;
-        }
+.nav-tabs .nav-link {
+    border: none; /* Remove default tab borders */
+    border-radius: 0.25rem 0.25rem 0 0; /* Only top corners rounded */
+    margin-bottom: 0; /* Ensure no extra space below tabs */
+    color: var(--bs-white) !important; /* Keep inactive tab text white against a dark background */
+}
 
-        /* Custom styling for the table responsiveness on small screens */
-        @media (max-width: 767.98px) {
-            .table-responsive table,
-            .table-responsive thead,
-            .table-responsive tbody,
-            .table-responsive th,
-            .table-responsive td,
-            .table-responsive tr {
-                display: block;
-            }
+/* Custom styling for the table responsiveness on small screens */
+/* This transforms tables into stacked "cards" for better mobile readability */
+@media (max-width: 767.98px) {
+    .table-responsive table,
+    .table-responsive thead,
+    .table-responsive tbody,
+    .table-responsive th,
+    .table-responsive td,
+    .table-responsive tr {
+        display: block; /* Make all table elements behave like block-level elements */
+    }
 
-            .table-responsive thead tr {
-                position: absolute;
-                top: -9999px; /* Hide table headers visually */
-                left: -9999px;
-            }
+    .table-responsive thead tr {
+        position: absolute;
+        top: -9999px; /* Hide table headers visually */
+        left: -9999px;
+    }
 
-            .table-responsive tr {
-                border: 1px solid var(--bs-border-color);
-                margin-bottom: 1rem;
-                border-radius: 0.375rem; /* Bootstrap's default border-radius */
-                background-color: var(--bs-white);
-                box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
-            }
+    .table-responsive tr {
+        border: 1px solid var(--bs-border-color);
+        margin-bottom: 1rem; 
+        border-radius: 0.375rem; 
+        background-color: var(--bs-white);
+        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075); /* Subtle shadow for card effect */
+    }
 
-            .table-responsive td {
-                border: none;
-                position: relative;
-                padding-left: 50%; /* Space for the "label" */
-                text-align: right;
-            }
+    .table-responsive td {
+        border: none; /* Remove individual cell borders */
+        position: relative;
+        padding-left: 50%; /* Space for the "label" pseudo-element */
+        text-align: right; /* Align actual data to the right */
+    }
 
-            .table-responsive td::before {
-                content: attr(data-label); /* Use data-label for the pseudo-element */
-                position: absolute;
-                left: 0.75rem; /* Padding equivalent to Bootstrap's default td padding */
-                width: 45%;
-                padding-right: 0.75rem;
-                white-space: nowrap;
-                text-align: left;
-                font-weight: bold;
-                color: var(--bs-primary);
-            }
-        }
+    .table-responsive td::before {
+        content: attr(data-label); /* Use data-label attribute for the pseudo-element text */
+        position: absolute;
+        left: 0.75rem; /* Padding equivalent to Bootstrap's default td padding */
+        width: 45%; /* Width for the label */
+        padding-right: 0.75rem;
+        white-space: nowrap;
+        text-align: left; /* Align label to the left */
+        font-weight: bold;
+        color: var(--bs-primary); /* Use primary color for labels */
+    }
+}
+
+/* --- Loading Overlay CSS --- */
+/* Styles for the global loading overlay */
+.loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7); 
+    color: white;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999; 
+    font-size: 1.5rem;
+    opacity: 0; 
+    visibility: hidden; 
+    pointer-events: none;
+    transition: opacity 0.3s ease-in-out, visibility 0s linear 0.3s; 
+}
+
+/* State when the overlay is actively shown */
+.loading-overlay.show {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto; /* Block clicks when visible */
+    transition: opacity 0.3s ease-in-out; /* Fade effect */
+}
+
+/* Styling for the Bootstrap spinner within the overlay */
+.loading-overlay .spinner-border {
+    color: var(--bs-white, white); 
+}
+
+/* Styling for the loading message text */
+.loading-overlay #loadingMessage {
+    margin-top: 1rem;
+    font-size: 1.2rem;
+}
