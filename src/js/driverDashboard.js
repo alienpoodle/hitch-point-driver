@@ -80,20 +80,25 @@ async function loadDriverProfile(driverId) {
         const driverSnap = await getDoc(driverRef);
         if (driverSnap.exists()) {
             currentDriverProfile = driverSnap.data();
+            // Ensure essential properties are always strings for consistency with rules
+            currentDriverProfile.name = currentDriverProfile.name || '';
+            currentDriverProfile.vehicleModel = currentDriverProfile.vehicleModel || '';
+            currentDriverProfile.licensePlate = currentDriverProfile.licensePlate || '';
+
             console.log('Driver profile loaded:', currentDriverProfile);
             // Update the displayed driver name and settings form fields
             if (driverNameSpan) driverNameSpan.textContent = currentDriverProfile.name || "Driver";
             if (settingsForm) {
-                document.getElementById('vehicleModel').value = currentDriverProfile.vehicleModel || '';
-                document.getElementById('licensePlate').value = currentDriverProfile.licensePlate || '';
+                document.getElementById('vehicleModel').value = currentDriverProfile.vehicleModel;
+                document.getElementById('licensePlate').value = currentDriverProfile.licensePlate;
             }
         } else {
             // If no driver profile exists, create a basic one
             currentDriverProfile = {
                 name: auth.currentUser.displayName || "Driver", // Use Auth display name as fallback
                 email: auth.currentUser.email || "",
-                vehicleModel: "",
-                licensePlate: "",
+                vehicleModel: "", // Initialize as empty string
+                licensePlate: "", // Initialize as empty string
                 createdAt: new Date().toISOString() // Timestamp for creation
             };
             await setDoc(driverRef, currentDriverProfile); // Create the document
@@ -419,14 +424,33 @@ async function handleAcceptRide(id) {
 
     const rideRef = doc(db, "rides", id);
     try {
+        // First, check the current state of the ride to prevent race conditions
+        const rideSnap = await getDoc(rideRef);
+        if (!rideSnap.exists() || rideSnap.data().status !== 'pending' || rideSnap.data().driverId !== null) {
+            showToast("This ride is no longer pending or has been accepted by another driver.", "warning");
+            return; // Exit if not in expected state
+        }
+
+        console.log("Attempting to accept ride:", id);
+        console.log("Driver UID:", driverUid);
+        console.log("Driver Profile for Update:", {
+            name: currentDriverProfile.name,
+            vehicleModel: currentDriverProfile.vehicleModel,
+            licensePlate: currentDriverProfile.licensePlate
+        });
+
+
+        // Ensure driver profile fields are strings before sending to Firestore
+        // Using nullish coalescing operator (?? '') to default to empty string if null/undefined
         await updateDoc(rideRef, {
             status: "accepted", // Change status to accepted
             driverId: driverUid, // Assign the current driver's UID
-            driverName: currentDriverProfile.name, // Assign driver's name
-            driverVehicleModel: currentDriverProfile.vehicleModel, // Assign driver's vehicle
-            driverLicensePlate: currentDriverProfile.licensePlate, // Assign driver's license plate
+            driverName: currentDriverProfile.name ?? '', // Ensure it's a string, default to empty
+            driverVehicleModel: currentDriverProfile.vehicleModel ?? '', // Ensure it's a string, default to empty
+            driverLicensePlate: currentDriverProfile.licensePlate ?? '', // Ensure it's a string, default to empty
             acceptedAt: new Date().toISOString() // Timestamp of acceptance
         });
+
         showToast('Ride accepted! Switching to current ride.', 'success');
 
         // Programmatically switch to the 'Current Rides' tab for better UX
@@ -439,7 +463,7 @@ async function handleAcceptRide(id) {
         }
     } catch (error) {
         console.error("Error accepting ride:", error);
-        showToast('Failed to accept ride. Please try again.', 'danger');
+        showToast('Failed to accept ride: ' + error.message, 'danger'); // Show specific error message
     }
 }
 
@@ -451,6 +475,12 @@ async function handleAcceptRide(id) {
 async function handleRejectRide(id) {
     const rideRef = doc(db, "rides", id);
     try {
+        const rideSnap = await getDoc(rideRef);
+        if (!rideSnap.exists() || rideSnap.data().status !== 'pending') {
+            showToast("This ride is no longer pending or has been accepted.", "warning");
+            return;
+        }
+
         await updateDoc(rideRef, {
             status: "rejected_by_driver", // A specific status for driver rejection
             rejectedBy: driverUid, // Record which driver rejected it
@@ -459,7 +489,7 @@ async function handleRejectRide(id) {
         showToast('Ride rejected.', 'info');
     } catch (error) {
         console.error("Error rejecting ride:", error);
-        showToast('Failed to reject ride. Please try again.', 'danger');
+        showToast('Failed to reject ride: ' + error.message, 'danger');
     }
 }
 
@@ -480,7 +510,7 @@ async function handleStartRide(rideId) {
             showToast('Ride started!', 'success');
         } catch (error) {
             console.error("Error starting ride:", error);
-            showToast('Failed to start ride. Please try again.', 'danger');
+            showToast('Failed to start ride: ' + error.message, 'danger');
         }
     } else {
         showToast('Cannot start ride. It might not be in the "accepted" state or not the current active ride.', 'warning');
@@ -513,7 +543,7 @@ async function handleCompleteRide(rideId) {
             }
         } catch (error) {
             console.error("Error completing ride:", error);
-            showToast('Failed to complete ride. Please try again.', 'danger');
+            showToast('Failed to complete ride: ' + error.message, 'danger');
         }
     } else {
         showToast('Cannot complete ride. It might not be in the "in progress" state or not the current active ride.', 'warning');
@@ -577,8 +607,8 @@ async function handleSettingsSubmit(e) {
     try {
         // Update the driver's document in Firestore
         await updateDoc(doc(db, "drivers", driverUid), {
-            vehicleModel: vehicleModel || '', // Ensure it's not undefined if field is missing
-            licensePlate: licensePlate || '', // Ensure it's not undefined if field is missing
+            vehicleModel: vehicleModel || '', // Ensure it's not undefined if field is missing, or empty string
+            licensePlate: licensePlate || '', // Ensure it's not undefined if field is missing, or empty string
             lastUpdatedAt: new Date().toISOString() // Add a timestamp for the last update
         });
 
@@ -590,6 +620,6 @@ async function handleSettingsSubmit(e) {
         console.log('Driver settings updated:', currentDriverProfile);
     } catch (error) {
         console.error("Error saving settings:", error);
-        showToast('Failed to save settings. Please try again.', 'danger');
+        showToast('Failed to save settings: ' + error.message, 'danger');
     }
 }
